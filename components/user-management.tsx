@@ -1,6 +1,8 @@
+// aditieraa/sihweb/SIHWEB-e3956d68757ff3134fa13924cdbd503c861045a9/components/user-management.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabaseClient"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -41,84 +43,6 @@ import {
   Calendar,
 } from "lucide-react"
 
-const userData = [
-  {
-    id: 1,
-    name: "Dr. Priya Sharma",
-    email: "priya.sharma@dps.edu.in",
-    role: "Super Admin",
-    institution: "Chandigarh University",
-    location: "Punjab",
-    phone: "+91 98765 43210",
-    status: "Active",
-    lastLogin: "2024-01-20 14:30",
-    joinDate: "2023-03-15",
-    preparednessScore: 94,
-    modulesCompleted: 45,
-    drillsParticipated: 12,
-  },
-  {
-    id: 2,
-    name: "Rajesh Kumar",
-    email: "rajesh.kumar@stmarys.edu.in",
-    role: "Parent",
-    institution: "-",
-    location: "Amritsar",
-    phone: "+91 87654 32109",
-    status: "Active",
-    lastLogin: "2024-01-20 09:15",
-    joinDate: "2023-06-20",
-    preparednessScore: 87,
-    modulesCompleted: 32,
-    drillsParticipated: 8,
-  },
-  {
-    id: 3,
-    name: "Anita Patel",
-    email: "anita.patel@gu.ac.in",
-    role: "Administrator",
-    institution: "Gujarat University",
-    location: "Ahmedabad",
-    phone: "+91 76543 21098",
-    status: "Active",
-    lastLogin: "2024-01-19 16:45",
-    joinDate: "2023-01-10",
-    preparednessScore: 91,
-    modulesCompleted: 38,
-    drillsParticipated: 15,
-  },
-  {
-    id: 4,
-    name: "Suresh Menon",
-    email: "suresh.menon@iitm.ac.in",
-    role: "Teacher",
-    institution: "IIT Mumbai",
-    location: "Mumbai",
-    phone: "+91 65432 10987",
-    status: "Inactive",
-    lastLogin: "2024-01-15 11:20",
-    joinDate: "2023-08-05",
-    preparednessScore: 78,
-    modulesCompleted: 28,
-    drillsParticipated: 6,
-  },
-  {
-    id: 5,
-    name: "Kavita Singh",
-    email: "kavita.singh@ac.in",
-    role: "Parent",
-    institution: "Assam College",
-    location: "Guwahati",
-    phone: "+91 54321 09876",
-    status: "Active",
-    lastLogin: "2024-01-20 12:00",
-    joinDate: "2023-09-01",
-    preparednessScore: 82,
-    modulesCompleted: 24,
-    drillsParticipated: 4,
-  },
-]
-
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterRole, setFilterRole] = useState("all")
@@ -126,19 +50,77 @@ export default function UserManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [userData, setUserData] = useState<any[]>([])
+
+  // Form state for creating a new user
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    role: '',
+    institution: '',
+    location: '',
+    phone: '',
+    status: 'Active',
+    lastLogin: new Date().toISOString(),
+    joinDate: new Date().toISOString(),
+    preparednessScore: 0,
+    modulesCompleted: 0,
+    drillsParticipated: 0,
+  });
+
+  useEffect(() => {
+    async function fetchUsers() {
+      const { data, error } = await supabase.from('users').select('*')
+      if (error) {
+        console.error('Error fetching users:', error)
+      } else {
+        setUserData(data)
+      }
+    }
+    fetchUsers()
+  }, [])
+
+  const handleCreateUser = async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .insert([newUser])
+      .select();
+
+    if (error) {
+      console.error('Error creating user:', error);
+    } else {
+      setUserData([...userData, data[0]]);
+      setIsCreateDialogOpen(false); // Close the dialog on success
+      setNewUser({ // Reset form
+        name: '',
+        email: '',
+        role: '',
+        institution: '',
+        location: '',
+        phone: '',
+        status: 'Active',
+        lastLogin: new Date().toISOString(),
+        joinDate: new Date().toISOString(),
+        preparednessScore: 0,
+        modulesCompleted: 0,
+        drillsParticipated: 0,
+      });
+    }
+  };
+
 
   const filteredUsers = userData.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.institution.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = filterRole === "all" || user.role.toLowerCase().includes(filterRole.toLowerCase())
-    const matchesStatus = filterStatus === "all" || user.status.toLowerCase() === filterStatus
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.institution?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesRole = filterRole === "all" || user.role?.toLowerCase().includes(filterRole.toLowerCase())
+    const matchesStatus = filterStatus === "all" || user.status?.toLowerCase() === filterStatus
     return matchesSearch && matchesRole && matchesStatus
   })
 
   const getRoleIcon = (role: string) => {
-    switch (role.toLowerCase()) {
+    switch (role?.toLowerCase()) {
       case "super admin":
       case "administrator":
         return <Shield className="h-4 w-4" />
@@ -152,7 +134,7 @@ export default function UserManagement() {
   }
 
   const getRoleBadgeVariant = (role: string) => {
-    switch (role.toLowerCase()) {
+    switch (role?.toLowerCase()) {
       case "super admin":
         return "default"
       case "administrator":
@@ -167,7 +149,7 @@ export default function UserManagement() {
   }
 
   const getStatusColor = (status: string) => {
-    return status.toLowerCase() === "active" ? "default" : "secondary"
+    return status?.toLowerCase() === "active" ? "default" : "secondary"
   }
 
   return (
@@ -185,8 +167,9 @@ export default function UserManagement() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">89,432</div>
+            <div className="text-2xl font-bold">{userData.length}</div>
             <p className="text-xs text-muted-foreground">
+              {/* This data is still hardcoded, you'd fetch this from your database as well */}
               <span className="text-chart-3">+8%</span> from last month
             </p>
           </CardContent>
@@ -246,54 +229,88 @@ export default function UserManagement() {
                   <DialogTitle>Add New User</DialogTitle>
                   <DialogDescription>Create a new user account for the SafeSpark platform</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name</Label>
-                      <Input id="fullName" placeholder="e.g., Dr. John Smith" />
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCreateUser();
+                  }}
+                >
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Full Name</Label>
+                        <Input
+                          id="fullName"
+                          placeholder="e.g., Dr. John Smith"
+                          value={newUser.name}
+                          onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="john.smith@institution.edu"
+                          value={newUser.email}
+                          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" placeholder="john.smith@institution.edu" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="role">Role</Label>
+                        <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="super-admin">Super Admin</SelectItem>
+                            <SelectItem value="administrator">Administrator</SelectItem>
+                            <SelectItem value="teacher">Teacher</SelectItem>
+                            <SelectItem value="student">Student</SelectItem>
+                            <SelectItem value="parent">Parent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="institution">Institution</Label>
+                        <Input
+                          id="institution"
+                          placeholder="e.g., Chandigarh University"
+                          value={newUser.institution}
+                          onChange={(e) => setNewUser({ ...newUser, institution: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          placeholder="+91 98765 43210"
+                          value={newUser.phone}
+                          onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location">Location</Label>
+                        <Input
+                          id="location"
+                          placeholder="e.g., New Delhi"
+                          value={newUser.location}
+                          onChange={(e) => setNewUser({ ...newUser, location: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Role</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="super-admin">Super Admin</SelectItem>
-                          <SelectItem value="administrator">Administrator</SelectItem>
-                          <SelectItem value="teacher">Teacher</SelectItem>
-                          <SelectItem value="student">Student</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="institution">Institution</Label>
-                      <Input id="institution" placeholder="e.g., Chandigarh University" />
-                    </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Create User</Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" placeholder="+91 98765 43210" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Location</Label>
-                      <Input id="location" placeholder="e.g., New Delhi" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={() => setIsCreateDialogOpen(false)}>Create User</Button>
-                </div>
+                </form>
               </DialogContent>
             </Dialog>
           </div>
@@ -319,6 +336,7 @@ export default function UserManagement() {
                 <SelectItem value="admin">Administrators</SelectItem>
                 <SelectItem value="teacher">Teachers</SelectItem>
                 <SelectItem value="student">Students</SelectItem>
+                <SelectItem value="parent">Parent</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
